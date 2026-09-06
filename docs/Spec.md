@@ -237,3 +237,261 @@ It will also contain cross-cutting decision-support fields:
     "Final repair cost requires professional inspection"
   ]
 }
+
+## 7. API Contract
+
+### Endpoint
+
+`POST /api/analyse`
+
+The endpoint accepts either:
+
+1. An uploaded image file.
+2. A publicly accessible image URL.
+
+Only one input source should be supplied per request.
+
+---
+
+### Request Option 1 — File Upload
+
+Content type:
+
+`multipart/form-data`
+
+Field:
+
+`image`
+
+Example:
+
+```text
+image: <uploaded file>
+
+Supported file types:
+
+- JPEG
+- PNG
+- WebP
+
+Maximum file size:
+
+- 10 MB
+
+---
+
+### Request Option 2 — Image URL
+
+Content type:
+
+`application/json`
+
+Example:
+
+```json
+{
+  "imageUrl": "https://example.com/car.jpg"
+}   
+
+
+Then add **Section 8 — UI Behaviour**:
+
+```markdown
+## 8. UI Behaviour
+
+The MVP will use a single-page interface.
+
+### Initial State
+
+The page should display:
+
+- application title and short description;
+- image upload control;
+- image URL input;
+- image preview area;
+- Analyse Damage button;
+- brief disclaimer explaining that results are AI-generated preliminary assessments.
+
+The Analyse Damage button should remain disabled until a valid image file or image URL is provided.
+
+### Image Input Behaviour
+
+The user may either:
+
+- upload an image file; or
+- provide an image URL.
+
+Only one input method should be active at a time.
+
+Selecting a local file should clear the URL input.
+
+Entering an image URL should clear any selected local file.
+
+### Preview
+
+Before analysis, the selected vehicle image should be shown to the user where possible.
+
+### Loading State
+
+After the user selects Analyse Damage:
+
+- disable the Analyse Damage button;
+- display a clear loading indicator;
+- show a message such as `Analysing vehicle damage...`;
+- prevent duplicate submissions.
+
+### Results State
+
+Successful analysis should display:
+
+#### Vehicle
+
+- make;
+- model;
+- colour;
+- confidence.
+
+#### Damage
+
+- summary;
+- severity;
+- affected areas;
+- confidence.
+
+#### Repair Estimate
+
+- estimated cost range;
+- currency;
+- assumptions;
+- confidence.
+
+#### Decision Support
+
+- whether human review is required;
+- warnings.
+
+### Confidence Presentation
+
+Confidence should be presented as a supporting indicator rather than a guarantee of accuracy.
+
+Low-confidence results should be visually clear and may contribute to `reviewRequired`.
+
+### Disclaimer
+
+The user interface should clearly state that:
+
+- the assessment is AI-generated;
+- only visible damage can be assessed;
+- hidden or structural damage may not be identifiable;
+- the repair estimate is preliminary;
+- final repair decisions require professional assessment.
+
+
+## 9. Error Handling
+
+The application should provide clear and user-friendly error messages.
+
+### Client-Side Validation
+
+Validate before sending the request where possible.
+
+Examples:
+
+- no image provided;
+- unsupported file type;
+- file exceeds 10 MB;
+- invalid URL format.
+
+### Server-Side Validation
+
+The server must independently validate all requests even if client-side validation has already occurred.
+
+### Image Fetch Failure
+
+If an external image URL cannot be retrieved, return `IMAGE_FETCH_FAILED`.
+
+The user should be prompted to check the URL or upload the image directly.
+
+### AI Service Failure
+
+If the model service is unavailable or returns an error:
+
+- return `MODEL_ERROR`;
+- show a generic customer-friendly message;
+- do not expose credentials, provider details, stack traces or raw API errors.
+
+### Invalid Model Output
+
+If the model response does not match the expected schema:
+
+- return `INVALID_MODEL_RESPONSE`;
+- do not render partially validated results.
+
+### Unexpected Errors
+
+Unexpected server errors should return `INTERNAL_ERROR`.
+
+The user should see a generic retry message.
+
+### Retry Behaviour
+
+The MVP may allow the user to retry manually after an error.
+
+Automatic retry logic is not required for the initial prototype.
+
+## 10. Acceptance Criteria
+
+The MVP is complete when the following criteria are met.
+
+### Input
+
+- User can upload a JPEG, PNG or WebP image.
+- User can provide a valid public image URL.
+- User can preview the selected image.
+- Invalid inputs are rejected with a clear message.
+
+### Analysis
+
+- The application sends the image to the server-side analysis endpoint.
+- The server calls a multimodal AI model.
+- The AI response is returned in the defined structured format.
+- The response is validated before being displayed.
+
+### Output
+
+The application displays:
+
+- vehicle make;
+- vehicle model;
+- vehicle colour;
+- vehicle confidence;
+- damage summary;
+- severity;
+- affected areas;
+- damage confidence;
+- repair cost range;
+- repair estimate confidence;
+- assumptions;
+- warnings;
+- review-required status.
+
+### User Experience
+
+- Loading state is visible during analysis.
+- Duplicate submissions are prevented during processing.
+- Errors are displayed clearly.
+- Results appear on the same page as the submitted image.
+- The user can submit another image after completing an assessment.
+
+### Security
+
+- AI credentials are never exposed to the browser.
+- No API keys or secrets are committed to source control.
+- Uploaded images are not persisted by the MVP unless explicitly required.
+
+### Documentation
+
+- README includes setup instructions.
+- README includes architecture overview.
+- Architecture diagrams are included in `/docs`.
+- Project specification is documented in `docs/Spec.md`.
