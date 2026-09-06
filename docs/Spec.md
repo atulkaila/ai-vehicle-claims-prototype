@@ -69,7 +69,7 @@ Return:
 
 - make;
 - model;
-- colour;
+- color;
 - confidence.
 
 ### Damage assessment
@@ -237,6 +237,88 @@ It will also contain cross-cutting decision-support fields:
     "Final repair cost requires professional inspection"
   ]
 }
+```
+
+### Confidence
+
+Confidence is captured independently for:
+
+- vehicle identification;
+- damage assessment;
+- repair-cost estimate.
+
+A single global confidence score is deliberately avoided because confidence may differ significantly across these tasks.
+
+The confidence values returned by the model should be treated as model-reported confidence indicators rather than calibrated statistical probabilities.
+
+Future production versions should calibrate confidence thresholds against labelled evaluation data.
+
+### Severity
+
+Initial severity values:
+
+- `minor`
+- `moderate`
+- `severe`
+- `unknown`
+
+### Affected areas
+
+`affectedAreas` contains the vehicle regions where visible damage has been identified.
+
+Example:
+
+```json
+[
+  "rear bumper",
+  "left quarter panel"
+]
+```
+
+### Cost range
+
+Repair cost is represented as a range rather than a precise value because image-only repair estimation contains significant uncertainty.
+
+Example:
+
+```json
+{
+  "min": 900,
+  "max": 1400,
+  "currency": "GBP"
+}
+```
+
+### Assumptions
+
+The model should explicitly state assumptions used when estimating repair cost.
+
+Examples:
+
+- no hidden structural damage;
+- estimate based only on visible damage;
+- standard labour rates assumed.
+
+### Review required
+
+`reviewRequired` indicates whether the result should be referred to a human assessor.
+
+For the MVP this may be produced by the AI response.
+
+In a production implementation, review routing should be controlled by deterministic business rules and calibrated thresholds.
+
+### Warnings
+
+Warnings communicate important limitations or uncertainty to the assessor.
+
+Examples:
+
+- low image quality;
+- vehicle model uncertain;
+- hidden structural damage cannot be assessed;
+- professional inspection required.
+
+---
 
 ## 7. API Contract
 
@@ -267,6 +349,7 @@ Example:
 
 ```text
 image: <uploaded file>
+```
 
 Supported file types:
 
@@ -291,12 +374,95 @@ Example:
 ```json
 {
   "imageUrl": "https://example.com/car.jpg"
-}   
+}
+```
 
+The URL must use `http` or `https`.
 
-Then add **Section 8 — UI Behaviour**:
+---
 
-```markdown
+### Success Response
+
+The endpoint returns the structured assessment defined in Section 6.
+
+```json
+{
+  "vehicle": {
+    "make": "BMW",
+    "model": "3 Series",
+    "color": "Black",
+    "confidence": 0.84
+  },
+  "damage": {
+    "summary": "Dent and abrasion to left rear bumper",
+    "severity": "moderate",
+    "affectedAreas": [
+      "rear bumper",
+      "left quarter panel"
+    ],
+    "confidence": 0.88
+  },
+  "repairEstimate": {
+    "costRange": {
+      "min": 900,
+      "max": 1400,
+      "currency": "GBP"
+    },
+    "assumptions": [
+      "No structural damage visible",
+      "Estimate based only on visible damage"
+    ],
+    "confidence": 0.58
+  },
+  "reviewRequired": true,
+  "warnings": [
+    "Final repair cost requires professional inspection"
+  ]
+}
+```
+
+### Validation Rules
+
+The API should reject:
+
+- empty requests;
+- unsupported image types;
+- files larger than 10 MB;
+- malformed URLs;
+- URLs that cannot be fetched;
+- requests containing both a file and URL;
+- AI responses that do not match the expected schema.
+
+### Error Response
+
+All errors should return a consistent structure.
+
+Example:
+
+```json
+{
+  "error": {
+    "code": "INVALID_IMAGE",
+    "message": "The uploaded file is not a supported image."
+  }
+}
+```
+
+Initial error codes:
+
+- `INVALID_INPUT`
+- `INVALID_IMAGE`
+- `IMAGE_TOO_LARGE`
+- `INVALID_URL`
+- `IMAGE_FETCH_FAILED`
+- `MODEL_ERROR`
+- `INVALID_MODEL_RESPONSE`
+- `INTERNAL_ERROR`
+
+Provider-specific or model-specific error details should not be exposed directly to the browser.
+
+---
+
 ## 8. UI Behaviour
 
 The MVP will use a single-page interface.
@@ -386,6 +552,7 @@ The user interface should clearly state that:
 - the repair estimate is preliminary;
 - final repair decisions require professional assessment.
 
+---
 
 ## 9. Error Handling
 
@@ -438,6 +605,8 @@ The user should see a generic retry message.
 The MVP may allow the user to retry manually after an error.
 
 Automatic retry logic is not required for the initial prototype.
+
+---
 
 ## 10. Acceptance Criteria
 
