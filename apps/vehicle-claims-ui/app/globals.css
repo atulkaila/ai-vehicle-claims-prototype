@@ -1,0 +1,16 @@
+/*
+ * Phase 1: Global stylesheet.
+ *
+ * Imports Tailwind CSS v4 and applies minimal base resets so the
+ * customer-facing prototype renders consistently on desktop and mobile.
+ */
+@import "tailwindcss";
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
