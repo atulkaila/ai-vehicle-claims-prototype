@@ -22,11 +22,9 @@ import {
   type ReactNode,
 } from "react";
 import type { Assessment, Severity } from "@/lib/types";
-import { mockAssessment } from "@/lib/mockAssessment";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 10 * 1024 * 1024;
-const SIMULATED_ANALYSIS_MS = 1500;
+const MAX_BYTES = 4 * 1024 * 1024;
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -35,6 +33,7 @@ export default function Home() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isAnalysing, setIsAnalysing] = useState(false);
   const [result, setResult] = useState<Assessment | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const objectUrlRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +82,7 @@ export default function Home() {
       revokeCurrentObjectUrl();
       setFile(null);
       clearPreviewAndResult();
-      setValidationError("Image exceeds the 10 MB limit.");
+      setValidationError("Image exceeds the 4 MB limit.");
       return;
     }
 
@@ -136,14 +135,37 @@ export default function Home() {
     !validationError &&
     (file !== null || (url.length > 0 && previewSrc !== null));
 
-  const handleAnalyse = () => {
+  const handleAnalyse = async () => {
     if (!canAnalyse) return;
     setIsAnalysing(true);
     setResult(null);
-    window.setTimeout(() => {
-      setResult(mockAssessment);
+    setApiError(null);
+    try {
+      let response: Response;
+      if (file) {
+        const body = new FormData();
+        body.append("image", file);
+        response = await fetch("/api/analyse", { method: "POST", body });
+      } else {
+        response = await fetch("/api/analyse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageUrl: url }),
+        });
+      }
+      const data = await response.json();
+      if (!response.ok) {
+        setApiError(data?.error?.message ?? "Analysis failed. Please try again.");
+        return;
+      }
+      setResult(data as Assessment);
+    } catch {
+      setApiError(
+        "Could not reach the analysis service. Check your connection and retry.",
+      );
+    } finally {
       setIsAnalysing(false);
-    }, SIMULATED_ANALYSIS_MS);
+    }
   };
 
   const handleReset = () => {
@@ -152,6 +174,7 @@ export default function Home() {
     setUrl("");
     setPreviewSrc(null);
     setValidationError(null);
+    setApiError(null);
     setIsAnalysing(false);
     setResult(null);
     if (fileInputRef.current) {
@@ -194,7 +217,7 @@ export default function Home() {
                 className="mt-1 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800 disabled:opacity-50"
               />
               <p className="mt-1 text-xs text-slate-500">
-                JPEG, PNG, or WebP up to 10 MB.
+                JPEG, PNG, or WebP up to 4 MB.
               </p>
             </div>
 
@@ -275,6 +298,15 @@ export default function Home() {
           {isAnalysing && (
             <div className="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
               Analysing vehicle damage…
+            </div>
+          )}
+
+          {apiError && !isAnalysing && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+            >
+              {apiError}
             </div>
           )}
 
