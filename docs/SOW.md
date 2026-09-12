@@ -33,9 +33,10 @@ This SOW covers an AI-powered claims intake solution that ingests a photograph o
 
 | Phase | Status | Purpose |
 |---|---|---|
-| Prototype | ✅ Delivered | Prove technical feasibility + customer experience |
-| Pilot | 🔜 Proposed | Validate assessor value with a small internal user cohort and 500–1,000 real claims |
-| Production | 🔜 Proposed | Enterprise deployment on Azure with governance, monitoring, and human-review workflow |
+| Prototype | ✅ Delivered | Prove technical feasibility and customer experience |
+| Pilot (4 weeks) | 🔜 Proposed | Migrate to a production-ready Azure stack, run against real claims with a small assessor cohort, and decide on wider rollout |
+
+Production rollout beyond the pilot is a separate engagement scoped after pilot evaluation (M5).
 
 ### 3. Technical Approach
 
@@ -61,15 +62,17 @@ Browser ──► /api/analyse (Vercel serverless, Node.js runtime)
 
 ### 4. Milestones and Timeline
 
+**Total duration: 4 weeks from pilot kickoff.** M1 is the delivered prototype; M2–M5 are the proposed pilot engagement.
+
 | # | Milestone | Target | Key Deliverables |
 |---|---|---|---|
-| M1 | Prototype (delivered) | Complete | Deployed demo, GitHub repo, README, SOW |
-| M2 | Pilot design | Week 1 | Success criteria, evaluation dataset plan (500 labelled claims), assessor cohort, budget approval |
-| M3 | Pilot: hardening | Weeks 2–3 | Entra ID auth, rate limiting, telemetry, Azure OpenAI migration behind managed identity |
-| M4 | Pilot: run | Weeks 4–6 | 500–1,000 real claim images processed by ≤ 5 assessors, weekly readouts |
-| M5 | Pilot: evaluation | Week 7 | KPI report vs targets, prompt-tuning recommendations, confusion matrix, go/no-go decision |
-| M6 | Production build | Weeks 8–13 | Private networking, WAF, Cosmos-backed history, human-review workflow, disaster-recovery drill |
-| M7 | Production launch | Week 14 | Enterprise rollout, on-call runbook, monthly review cadence |
+| M1 | Prototype (delivered) | Day 0 | Deployed demo, GitHub repo, README, SOW |
+| M2 | Design & Azure provisioning | Week 1 | Success criteria agreed, evaluation dataset spec (200 labelled claims), Azure resources provisioned (App Service, Azure OpenAI, Cosmos DB, Application Insights), Entra ID app registration |
+| M3 | Azure migration & hardening | Week 2 | App migrated to Azure App Service, OpenAI swapped for Azure OpenAI behind managed identity, Entra ID auth wired, claim history in Cosmos DB, telemetry live, basic rate limiting via API Management |
+| M4 | Pilot execution | Week 3 | 200–500 real claim images processed by 3–5 assessors, daily telemetry monitoring, prompt-tuning against evaluation set |
+| M5 | Evaluation & production readiness | Week 4 | KPI report vs targets, confusion matrix, human-review workflow, operational runbook, go/no-go decision on wider rollout |
+
+Production rollout beyond the pilot (broader assessor onboarding, disaster-recovery drills, multi-region hosting, integration with the core claims system) is a separate engagement to be scoped based on M5 outcomes.
 
 ### 5. Risk Assessment
 
