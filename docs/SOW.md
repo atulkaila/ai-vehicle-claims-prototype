@@ -34,7 +34,7 @@ This SOW covers an AI-powered claims intake solution that ingests a photograph o
 | Phase | Status | Purpose |
 |---|---|---|
 | Prototype | ✅ Delivered | Prove technical feasibility and customer experience |
-| Pilot (4 weeks) | 🔜 Proposed | Migrate to a production-ready Azure stack, run against real claims with a small assessor cohort, and decide on wider rollout |
+| Pilot (4 weeks) | 🔜 Proposed | Select the production-ready platform, migrate, run against real claims with a small assessor cohort, and decide on wider rollout |
 
 Production rollout beyond the pilot is a separate engagement scoped after pilot evaluation (M5).
 
@@ -56,21 +56,28 @@ Browser ──► /api/analyse (Vercel serverless, Node.js runtime)
 
 **Integration points (prototype):** OpenAI Chat Completions API; GitHub for source control; Vercel for hosting, CI, and encrypted environment variables.
 
-**Integration points (production migration):** Azure OpenAI (Foundry deployment) via managed identity replaces the OpenAI API key; Azure App Service or Container Apps replaces Vercel; Application Insights for telemetry; Azure Front Door + WAF at the edge; Azure Cosmos DB or PostgreSQL for claim history; Microsoft Entra ID for assessor authentication; Azure API Management for rate limiting, quotas, and audit.
+**Platform selection for the pilot (M2 decision):** Two viable stacks. The choice is deferred to the design phase so it is grounded in the customer's cloud footprint, GDPR posture, existing SSO provider, and downstream integration targets rather than assumed up front:
+
+- **Option A — Harden on Vercel + OpenAI**: Vercel Pro (Firewall, static egress, rate limits), Vercel KV, Vercel Postgres for claim history, Auth.js with Entra ID via OIDC, OpenAI enterprise plan with DPA, Sentry or Vercel Observability for telemetry.
+- **Option B — Migrate to Azure**: Azure App Service or Container Apps, Azure OpenAI behind managed identity, native Entra ID authentication, Azure Cosmos DB for history, Azure API Management for rate limits and audit, Application Insights for telemetry.
+
+Both options satisfy the same target architecture (auth, persistence, telemetry, rate limiting, safe secret handling); only the vendor supplying each layer differs. Milestones M3–M5 are written to be platform-agnostic — only M2 depends on the choice.
 
 **Defensive layers:** client-side MIME and size validation; client-side URL syntax and preview verification; server-side re-validation, SSRF guard blocking loopback and RFC1918 ranges; Zod schema enforcement on the model response; consistent customer-safe error envelope.
 
 ### 4. Milestones and Timeline
 
-**Total duration: 4 weeks from pilot kickoff.** M1 is the delivered prototype; M2–M5 are the proposed pilot engagement.
+**Total duration: 4 weeks from pilot kickoff.** M1 is the delivered prototype; M2 is the platform and design decision; M3–M5 execute against whichever platform is chosen in M2.
 
 | # | Milestone | Target | Key Deliverables |
 |---|---|---|---|
 | M1 | Prototype (delivered) | Day 0 | Deployed demo, GitHub repo, README, SOW |
-| M2 | Design & Azure provisioning | Week 1 | Success criteria agreed, evaluation dataset spec (200 labelled claims), Azure resources provisioned (App Service, Azure OpenAI, Cosmos DB, Application Insights), Entra ID app registration |
-| M3 | Azure migration & hardening | Week 2 | App migrated to Azure App Service, OpenAI swapped for Azure OpenAI behind managed identity, Entra ID auth wired, claim history in Cosmos DB, telemetry live, basic rate limiting via API Management |
+| M2 | Platform decision & design | Week 1 | Selected platform (Vercel-harden or Azure-migrate), success criteria agreed, evaluation dataset spec (200 labelled claims), platform resources provisioned, SSO / Entra ID app registration |
+| M3 | Hardening & migration | Week 2 | Auth wired (Entra ID via native or OIDC), claim history persisted, telemetry live, rate limiting applied, secret management on chosen platform, model access configured (Azure OpenAI + managed identity, or enterprise OpenAI + DPA) |
 | M4 | Pilot execution | Week 3 | 200–500 real claim images processed by 3–5 assessors, daily telemetry monitoring, prompt-tuning against evaluation set |
 | M5 | Evaluation & production readiness | Week 4 | KPI report vs targets, confusion matrix, human-review workflow, operational runbook, go/no-go decision on wider rollout |
+
+Production rollout beyond the pilot (broader assessor onboarding, disaster-recovery drills, multi-region hosting, integration with the core claims system) is a separate engagement to be scoped based on M5 outcomes.
 
 Production rollout beyond the pilot (broader assessor onboarding, disaster-recovery drills, multi-region hosting, integration with the core claims system) is a separate engagement to be scoped based on M5 outcomes.
 
@@ -79,7 +86,7 @@ Production rollout beyond the pilot (broader assessor onboarding, disaster-recov
 | # | Risk | Impact | Likelihood | Mitigation |
 |---|---|---|---|---|
 | R1 | Model hallucinates make/model or cost | High | Medium | Human review threshold, confidence gating (<0.7 → review), evaluation dataset before production, quarterly re-tuning |
-| R2 | API key or credential leaked | High | Low | Server-side only, encrypted vault, rotation policy, SIEM alerts on anomalous usage; production uses Entra managed identity (no key) |
+| R2 | API key or credential leaked | High | Low | Server-side only, encrypted vault, rotation policy, SIEM alerts on anomalous usage; managed identity replaces the key entirely if Azure is selected in M2 |
 | R3 | Model provider outage | Medium | Low | Graceful `MODEL_ERROR` envelope, retry with exponential backoff, secondary provider on hot standby in production |
 | R4 | Image PII / GDPR concerns (number plates, faces, VINs) | High | Medium | No persistence in prototype; region-locked hosting + retention policy + redaction pipeline in production |
 | R5 | Runaway OpenAI cost from abuse | Medium | Medium | Monthly billing cap on OpenAI account; Vercel Firewall / APIM rate limits in production; budget alerts at 50 % / 80 % / 100 % |
