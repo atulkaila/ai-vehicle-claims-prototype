@@ -1,10 +1,10 @@
 # AI Vehicle Claims Prototype
 
-Preliminary AI-assisted vehicle damage assessment for insurance intake — a customer-ready full-stack prototype built for a Solutions Engineer take-home exercise.
+Preliminary AI-assisted vehicle damage assessment for insurance claims intake — a customer-ready full-stack prototype.
 
 - 🌐 **Live demo:** https://ai-vehicle-claims-prototype-p6sy.vercel.app
 - 💻 **Source:** https://github.com/atulkaila/ai-vehicle-claims-prototype
-- 📄 **Statement of Work:** [docs/SOW.md](docs/SOW.md)
+- 📄 **Statement of Work:** [Markdown](docs/SOW.md) · [PDF](docs/SOW.pdf)
 
 An insurance assessor uploads a photo of a damaged vehicle (or pastes a public image URL). The app returns vehicle metadata (make / model / colour), a textual damage summary, a preliminary GBP cost range, per-section confidence indicators, and a human-review flag — all on the same page.
 
@@ -204,7 +204,7 @@ The UI translates each `code` into a plain-English red banner for the user — a
 
 ## Limitations
 
-This is a 3–4 hour prototype. Known limitations:
+This is a working prototype. Known limitations:
 
 - **Confidence values are self-reported by the model, not calibrated** against real assessment outcomes.
 - **Cost estimates are preliminary GBP ranges only** — based on standard UK labour rates, no hidden structural damage, no OEM vs aftermarket parts choice.
