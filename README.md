@@ -19,6 +19,7 @@ Results are **decision support**, not automated claim approval.
 ## Table of contents
 
 - [Quick demo](#quick-demo)
+- [Screenshots](#screenshots)
 - [Architecture](#architecture)
 - [Setup — run locally](#setup--run-locally)
 - [Deployment](#deployment)
@@ -51,6 +52,30 @@ Sample output for a photo of a crashed BMW 1 Series:
 | **Human review** | **Required** | — |
 
 An intentional anti-fraud demo: uploading a photo that isn't a vehicle (e.g. a dog) returns `"Unknown"` for every field with 0% confidence and a mandatory human-review flag — the model refuses to hallucinate an insurance claim.
+
+---
+
+## Screenshots
+
+Live assessments run against the three real sample files in [docs/examples/](docs/examples/README.md).
+
+### BMW — severe front-end damage
+
+Severe severity, £1,500–£2,500, three independent confidences (80% / 85% / 70%), warnings call out possible hidden damage. Human review flagged.
+
+![BMW severe front-end damage assessment result](docs/screenshots/Car-Insurance-BMW-example-Image1.png)
+
+### VW Tiguan — severe front-left collision
+
+Make and model both identified with high confidence (90%). £1,200–£2,000 range. Human review flagged.
+
+![VW Tiguan severe front-left collision assessment result](docs/screenshots/Car-Insurance-VW-example-Image2.png)
+
+### Ambiguous vehicle — anti-hallucination guard
+
+A second vehicle sits on top of the first. The model refuses to guess: `make` and `model` return `Unknown`, all confidences drop to 50–60%, warnings call out image ambiguity and hidden damage risk. Human review flagged.
+
+![Ambiguous crash scene assessment result showing Unknown make and model](docs/screenshots/Car-Insurance-Crash-example-Image3.png)
 
 ---
 

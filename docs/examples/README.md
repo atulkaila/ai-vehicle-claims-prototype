@@ -10,10 +10,10 @@ Curated demo files for the [live prototype](https://ai-vehicle-claims-prototype-
 | - | ---- | -------- | -------------- |
 | 1 | [Insurance-Damage-VW-Sample-1.jpg](Insurance-Damage-VW-Sample-1.jpg) | **Severe front-left collision — VW Tiguan** | Vehicle identified with high confidence (make, model, colour). Severity `severe`. GBP range in the low four-figures. `reviewRequired: true`. |
 | 2 | [Insurance-Damage-BMW-Sample-2.jpg](Insurance-Damage-BMW-Sample-2.jpg) | **Severe front-end damage — BMW** | Make + colour identified with high confidence; model may return `Unknown` depending on the angle. Severity `severe`. `reviewRequired: true` with a "possible hidden damage" warning. |
-| 3 | [Insurance-Damage-Crash- Sample-4.jpg.png](Insurance-Damage-Crash-%20Sample-4.jpg.png) | **Ambiguous vehicle — second car on top** | The model correctly refuses to guess: `make` and `model` return `Unknown`, confidences drop below 0.7, `reviewRequired: true`, warnings mention image ambiguity. Demonstrates the anti-hallucination guard. |
+| 3 | [Insurance-Damage-Crash- Sample-4.png](Insurance-Damage-Crash-%20Sample-4.png) | **Ambiguous vehicle — second car on top** | The model correctly refuses to guess: `make` and `model` return `Unknown`, confidences drop below 0.7, `reviewRequired: true`, warnings mention image ambiguity. Demonstrates the anti-hallucination guard. |
 | 4 | [Insurance-Damage-Sample-Morethan4MB-3.jpg](Insurance-Damage-Sample-Morethan4MB-3.jpg) | **Over the 4 MB cap** | The client-side size check refuses the upload before it reaches the API. If bypassed (e.g. via `curl`), the API returns `IMAGE_TOO_LARGE` (HTTP 413). This is Vercel's serverless request-body cap, not an app-imposed limit. |
 
-The `Insurance-Damage-Crash- Sample-4.jpg.png` filename keeps the mixed extension it arrived with — the file is a valid PNG and OpenAI accepts it by MIME sniff.
+The `Insurance-Damage-Crash- Sample-4.png` filename keeps its space in the middle — valid but slightly fragile in shell contexts.
 
 ---
 

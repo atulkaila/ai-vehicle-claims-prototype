@@ -24,7 +24,7 @@ Open the live URL in a clean browser window. Have the [samples folder](examples/
 | 1 | Upload **`Insurance-Damage-VW-Sample-1.jpg`** or **`Insurance-Damage-BMW-Sample-2.jpg`** | *"This is the primary happy path. A single image in, a full structured assessment out on the same page."* |
 | 2 | Point out the three confidences | *"They are independent by design — I can be very confident about the make but much less confident about the cost. A single global number would hide that."* |
 | 3 | Point out the **Human review required** flag | *"The prompt sets this whenever severity is severe, any confidence is below 0.7, or hidden damage is plausible. It reinforces that a human is always in the loop."* |
-| 4 | Upload **`Insurance-Damage-Crash- Sample-4.jpg.png`** | *"Second car on top of the first — deliberately ambiguous. The model returns `Unknown` for make and model with low confidence and flags a warning. It does not hallucinate a claim."* |
+| 4 | Upload **`Insurance-Damage-Crash- Sample-4.png`** | *"Second car on top of the first — deliberately ambiguous. The model returns `Unknown` for make and model with low confidence and flags a warning. It does not hallucinate a claim."* |
 | 5 | Try **`Insurance-Damage-Sample-Morethan4MB-3.jpg`** | *"Client-side check refuses the upload before it reaches the API. The 4 MB limit is Vercel's serverless request-body cap; the app calls it out clearly."* |
 | 6 | Paste a public URL (a Wikipedia thumbnail is convenient) to trigger an error | *"The API returns a coded error envelope, the UI translates it into a plain-English banner. Users never see a stack trace, and the app never returns a mock or a hallucinated success."* |
 
