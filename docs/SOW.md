@@ -10,6 +10,8 @@
 | **Deployed prototype** | [ai-vehicle-claims-prototype-p6sy.vercel.app](https://ai-vehicle-claims-prototype-p6sy.vercel.app) |
 | **Source** | [github.com/atulkaila/ai-vehicle-claims-prototype](https://github.com/atulkaila/ai-vehicle-claims-prototype) |
 
+**Overview.** This SOW covers an AI-powered claims intake solution that ingests a photograph of a damaged vehicle and returns a structured preliminary assessment — vehicle identification, damage summary, repair-cost range, per-section confidence, and a human-review recommendation. The prototype is deployed and demonstrated. This document defines scope, technical approach, milestones, risks, and KPIs for taking the prototype through a 4-week pilot.
+
 ### 1. Project Scope
 
 An AI-assisted claims intake application that accepts a photograph of a damaged vehicle and returns a structured preliminary assessment — vehicle identification, damage summary, repair-cost range, per-section confidence, and a human-review recommendation. Delivered as a working prototype and proposed for a 4-week pilot before wider rollout.
@@ -89,3 +91,15 @@ Both options meet the same target architecture (auth, persistence, telemetry, ra
 | K8 | Security incidents | 0 | Quarterly key-management + access-log audit |
 | K9 | Submission-to-first-look time | < 2 min | Workflow instrumentation |
 | K10 | Cost avoidance per adopted claim | Baseline in pilot | Compared to average manual-only cost |
+
+---
+
+### Approval
+
+| Vendor | Client |
+|---|---|
+| _____________________________ | _____________________________ |
+| Atul Kaila, Solutions Engineering | (Name, Title) |
+| Date: | Date: |
+
+*This SOW is a working document and will be refined jointly with the client during the pilot design phase (M2). References: source repository and deployed prototype URLs listed at the top of this document.*
