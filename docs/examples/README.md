@@ -1,46 +1,40 @@
-# Sample assessment scenarios
+# Sample assessment inputs
 
-Curated demo inputs for the [live prototype](https://ai-vehicle-claims-prototype-p6sy.vercel.app). Each row represents a scenario the assessment pipeline should handle. Use these when demonstrating the app end-to-end.
-
-Two ways to feed each scenario into the app:
-
-- **File upload** — download the local image (when available) and use the **Choose File** button.
-- **Public URL** — paste the URL into the **Or paste a public image URL** field.
+Curated demo files for the [live prototype](https://ai-vehicle-claims-prototype-p6sy.vercel.app). Each row exercises a specific behaviour of the assessment pipeline. Download the file, then use **Choose File** in the app.
 
 ---
 
-## Scenario catalog
+## Included samples
 
-| # | Scenario | Expected result | File | Public URL |
-| - | -------- | --------------- | ---- | ---------- |
-| 1 | **Undamaged vehicle** — reference / control input | Vehicle identified with high confidence, damage `severity: minor` or `unknown` with an empty affected-areas array, human review flag surfaced when the model isn't certain damage is absent | _add local image_ | https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&q=80 |
-| 2 | **Minor damage** — scratch, small dent, or scuffed bumper | `severity: minor`, low-hundreds GBP range, `reviewRequired: false` when all confidences ≥ 0.7 | _add local image_ | _add public URL_ |
-| 3 | **Moderate damage** — dented panel, cracked bumper, broken headlight | `severity: moderate`, mid four-figure GBP range, `reviewRequired: true` when hidden damage is plausible | _add local image_ | _add public URL_ |
-| 4 | **Severe damage** — front-end collision, deployed airbags, structural deformation | `severity: severe`, top of the GBP range, `reviewRequired: true` always | _add local image_ | _add public URL_ |
-| 5 | **Anti-fraud — non-vehicle** (dog, chair, landscape, etc.) | Every field returns `"Unknown"` with 0% confidence, `reviewRequired: true`, `warnings` explains the image is not a vehicle | _add local image_ | _add public URL_ |
-| 6 | **Ambiguous / poor quality** — blurred, dark, extreme angle | Low confidences (< 0.7), `reviewRequired: true`, warnings mention image quality | _add local image_ | _add public URL_ |
+| # | File | Scenario | What to expect |
+| - | ---- | -------- | -------------- |
+| 1 | [Insurance-Damage-VW-Sample-1.jpg](Insurance-Damage-VW-Sample-1.jpg) | **Severe front-left collision — VW Tiguan** | Vehicle identified with high confidence (make, model, colour). Severity `severe`. GBP range in the low four-figures. `reviewRequired: true`. |
+| 2 | [Insurance-Damage-BMW-Sample-2.jpg](Insurance-Damage-BMW-Sample-2.jpg) | **Severe front-end damage — BMW** | Make + colour identified with high confidence; model may return `Unknown` depending on the angle. Severity `severe`. `reviewRequired: true` with a "possible hidden damage" warning. |
+| 3 | [Insurance-Damage-Crash- Sample-4.jpg.png](Insurance-Damage-Crash-%20Sample-4.jpg.png) | **Ambiguous vehicle — second car on top** | The model correctly refuses to guess: `make` and `model` return `Unknown`, confidences drop below 0.7, `reviewRequired: true`, warnings mention image ambiguity. Demonstrates the anti-hallucination guard. |
+| 4 | [Insurance-Damage-Sample-Morethan4MB-3.jpg](Insurance-Damage-Sample-Morethan4MB-3.jpg) | **Over the 4 MB cap** | The client-side size check refuses the upload before it reaches the API. If bypassed (e.g. via `curl`), the API returns `IMAGE_TOO_LARGE` (HTTP 413). This is Vercel's serverless request-body cap, not an app-imposed limit. |
+
+The `Insurance-Damage-Crash- Sample-4.jpg.png` filename keeps the mixed extension it arrived with — the file is a valid PNG and OpenAI accepts it by MIME sniff.
+
+---
+
+## Not yet covered — contributions welcome
+
+| Scenario | What it would prove |
+| -------- | ------------------- |
+| **Undamaged vehicle** | Model returns severity `minor` or `unknown` with an empty affected-areas list; useful control input. |
+| **Minor damage** — a scratch or small dent | Severity `minor`, low-hundreds GBP range, `reviewRequired: false` when all confidences ≥ 0.7. |
+| **Anti-fraud — non-vehicle** (dog, chair, landscape) | Every field returns `"Unknown"` with 0% confidence, `reviewRequired: true`, warnings explains the image is not a vehicle. |
+| **Ambiguous / poor quality** — blurred, dark, extreme angle | Low confidences, warnings mention image quality. |
+
+Drop a JPEG / PNG / WebP file into this folder (**≤ 4 MB**), then add a row to the table above.
 
 ---
 
 ## Notes on public URLs
 
-The OpenAI image fetcher is strict about the source. Verified working:
+The app also accepts a JSON body `{ "imageUrl": "https://…" }`. OpenAI's server-side image fetcher is strict about the source:
 
-- **Unsplash** with the `?w=800&q=80` query string — confirmed against the smoke test.
+- **Unsplash** with the `?w=800&q=80` query string — verified working (see the smoke test script).
+- **Wikimedia / Wikipedia** thumbnails — Wikimedia rejects the OpenAI fetcher's User-Agent. The app degrades gracefully to `IMAGE_FETCH_FAILED`.
 
-Known-failing (documented as `IMAGE_FETCH_FAILED` in the app):
-
-- **Wikimedia / Wikipedia** thumbnails — Wikimedia rejects the OpenAI fetcher's User-Agent.
-
-If a scenario needs a specific look, prefer a local file upload over a URL.
-
----
-
-## Adding new samples
-
-1. Drop the image file into this folder. Keep filenames short and descriptive: `01-undamaged-honda-civic.jpg`, `04-severe-collision-bmw.jpg`, `05-antifraud-dog.jpg`.
-2. Keep each file under **4 MB** — that is the API cap.
-3. Update the table above: fill the **File** cell with a repo-relative link (e.g. `[01-undamaged.jpg](01-undamaged-honda-civic.jpg)`) and add a Public URL if you have one.
-4. Commit with a message such as `docs: add sample scenario N — <short description>`.
-
-Images in this folder are intended purely as demo inputs. They are not training data and are never sent to OpenAI unless a user explicitly uploads one from this folder.
+Prefer a local file upload when a scenario needs a specific look.

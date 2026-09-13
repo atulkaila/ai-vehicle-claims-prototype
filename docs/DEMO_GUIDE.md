@@ -1,11 +1,11 @@
-# Interview walkthrough — cheat sheet
+# Prototype demo guide
 
-> A run-book for the **AI Vehicle Claims Prototype** interview walkthrough. Keep this open on a second screen. Time targets are indicative — adjust to the interviewer's pace.
+> A run-book for demonstrating the **AI Vehicle Claims Prototype** end-to-end. Keep this open on a second screen while driving the live app. Time targets are indicative — adjust to your audience.
 
 - **Live demo:** https://ai-vehicle-claims-prototype-p6sy.vercel.app
 - **Source:** https://github.com/atulkaila/ai-vehicle-claims-prototype
 - **SOW:** [docs/SOW.md](SOW.md) · [docs/SOW.pdf](SOW.pdf)
-- **Sample scenarios:** [docs/examples/README.md](examples/README.md)
+- **Sample images:** [docs/examples/](examples/README.md)
 
 ---
 
@@ -17,16 +17,16 @@
 
 ## 1. Demo script (≈ 3 minutes)
 
-Open the live URL in a clean browser window. Have the [samples catalog](examples/README.md) open in a second tab.
+Open the live URL in a clean browser window. Have the [samples folder](examples/README.md) open in a second tab.
 
 | Step | Action | What to say |
 | ---- | ------ | ----------- |
-| 1 | Upload a **damaged car photo** (scenario 3 or 4 from the catalog) | *"This is the primary happy path. A single image in, a full structured assessment out on the same page."* |
+| 1 | Upload **`Insurance-Damage-VW-Sample-1.jpg`** or **`Insurance-Damage-BMW-Sample-2.jpg`** | *"This is the primary happy path. A single image in, a full structured assessment out on the same page."* |
 | 2 | Point out the three confidences | *"They are independent by design — I can be very confident about the make but much less confident about the cost. A single global number would hide that."* |
 | 3 | Point out the **Human review required** flag | *"The prompt sets this whenever severity is severe, any confidence is below 0.7, or hidden damage is plausible. It reinforces that a human is always in the loop."* |
-| 4 | Paste the **Unsplash URL** from scenario 1 | *"Same endpoint, alternative input path. No key ever leaves the server."* |
-| 5 | Upload the **non-vehicle image** (scenario 5) | *"This is the anti-fraud check. The prompt forces the model to return `Unknown` for every field with 0% confidence rather than hallucinate a claim."* |
-| 6 | Trigger an **error** (e.g. paste a Wikipedia URL) | *"The API returns a coded error envelope, the UI translates it into a plain-English banner. Users never see a stack trace, and the app never returns a mock or a hallucinated success."* |
+| 4 | Upload **`Insurance-Damage-Crash- Sample-4.jpg.png`** | *"Second car on top of the first — deliberately ambiguous. The model returns `Unknown` for make and model with low confidence and flags a warning. It does not hallucinate a claim."* |
+| 5 | Try **`Insurance-Damage-Sample-Morethan4MB-3.jpg`** | *"Client-side check refuses the upload before it reaches the API. The 4 MB limit is Vercel's serverless request-body cap; the app calls it out clearly."* |
+| 6 | Paste a public URL (a Wikipedia thumbnail is convenient) to trigger an error | *"The API returns a coded error envelope, the UI translates it into a plain-English banner. Users never see a stack trace, and the app never returns a mock or a hallucinated success."* |
 
 ---
 
@@ -48,7 +48,7 @@ Sketch it if asked:
 
 | If asked … | Answer |
 | ---------- | ------ |
-| **Why OpenAI and not Azure OpenAI?** | Personal Azure Foundry resource had `disableLocalAuth=true` enforced by tenant policy. OpenAI was the fastest path to a working, deployable prototype under the time cap. Azure OpenAI + managed identity is in the SOW (**M2 decision** and **M3 hardening / migration**). |
+| **Why OpenAI and not Azure OpenAI?** | The personal Azure Foundry resource had `disableLocalAuth=true` enforced by tenant policy. OpenAI was the fastest path to a working, deployable prototype under the time cap. Azure OpenAI + managed identity is called out in the SOW (**M2 decision** and **M3 hardening / migration**). |
 | **Why Vercel?** | Zero-config Next.js hosting, free encrypted env vars, auto-deploy on push, serverless functions with the 60 s max duration the API needs. Perfect for a demo; the SOW discusses when to consider Azure App Service or Container Apps instead. |
 | **Why `gpt-4o-mini`?** | Vision-capable, JSON-native, ≈ US$0.0002 per assessment, 2–5 s typical latency. Adequate accuracy for a decision-support prototype. |
 | **Why Zod?** | Runtime validation of model output *and* automatic TypeScript type inference. Prevents drift between what the code assumes and what actually arrives. |
@@ -56,7 +56,7 @@ Sketch it if asked:
 | **Why single request, no multi-agent?** | The prototype's goal is customer-experience validation, not orchestration complexity. Latency and cost stay minimal. Production could split vehicle-ID, damage, and cost into specialised agents (called out in Future Improvements). |
 | **Why three independent confidences?** | Uncertainty is not uniform across the three reasoning steps. A single global number would hide the real risk. |
 | **Why a GBP range, not a point estimate?** | Image-only cost prediction has intrinsic uncertainty. A range communicates that honestly. |
-| **Why a customer-safe error envelope?** | We must never surface raw OpenAI messages, stack traces, or provider identifiers. Every failure maps to a specific `code` and a plain-English banner in the UI. |
+| **Why a customer-safe error envelope?** | Never surface raw OpenAI messages, stack traces, or provider identifiers. Every failure maps to a specific `code` and a plain-English banner in the UI. |
 
 ---
 
@@ -69,7 +69,7 @@ Sketch it if asked:
 
 ---
 
-## 5. What I would do next (in priority order)
+## 5. What comes next (in priority order)
 
 Same order as in the README's *Future improvements* section:
 
@@ -86,30 +86,30 @@ Same order as in the README's *Future improvements* section:
 
 ---
 
-## 6. Likely questions — quick answers
+## 6. Frequently asked questions
 
-- **"How do you know the confidence is real?"** → It is self-reported by the model and *not calibrated*. That is a stated limitation. I would build an eval set and calibrate against outcomes before ever using it as a business threshold.
+- **"How do you know the confidence is real?"** → It is self-reported by the model and *not calibrated*. That is a stated limitation. The next step is to build an eval set and calibrate against outcomes before ever using it as a business threshold.
 - **"What stops someone submitting a fake photo?"** → The prompt-based anti-fraud path returns `"Unknown"` for non-vehicles, and every response has `reviewRequired` and `warnings`. Production would add image forensics, EXIF checks, and multi-photo cross-validation.
-- **"What's your cost model?"** → ≈ US$0.0002 per assessment on `gpt-4o-mini`. The server logs an `estCostUsd` per request so we can measure it. At 10 k assessments/day, that's ≈ US$2/day for the AI call.
-- **"Why not use OpenAI Assistants / a framework?"** → Overkill for a single-endpoint prototype. Adds latency, cost, and complexity. Would consider it when we need retrieval, tool-use, or long-lived conversations.
-- **"What tests do you have?"** → A GitHub Actions workflow runs `tsc --noEmit` and `next build` on Node 20 and 22 on every push. Plus a smoke script that exercises the full OpenAI path locally. Unit and integration tests for the route are in the *Future improvements* backlog.
-- **"How would you scale this to 100 k/day?"** → Vercel serverless handles the concurrency. Bottleneck is OpenAI rate limits — solve by tier upgrade or Azure OpenAI regional deployments. Add KV-backed rate limiting per user. Add queueing if we need durable retries.
+- **"What's the cost model?"** → ≈ US$0.0002 per assessment on `gpt-4o-mini`. The server logs an `estCostUsd` per request so it can be measured. At 10 k assessments/day, that is ≈ US$2/day for the AI call.
+- **"Why not use OpenAI Assistants / a framework?"** → Overkill for a single-endpoint prototype. Adds latency, cost, and complexity. Worth considering when we need retrieval, tool-use, or long-lived conversations.
+- **"What tests are there?"** → A GitHub Actions workflow runs `tsc --noEmit` and `next build` on Node 20 and 22 on every push. A smoke script exercises the full OpenAI path locally. Unit and integration tests for the route are in the *Future improvements* backlog.
+- **"How would this scale to 100 k/day?"** → Vercel serverless handles the concurrency. Bottleneck is OpenAI rate limits — solve by tier upgrade or Azure OpenAI regional deployments. Add KV-backed rate limiting per user. Add queueing if durable retries are required.
 
 ---
 
 ## 7. Live-recovery cues
 
-Things that might go wrong in the demo:
+Things that might go wrong during the demo:
 
 | Symptom | Fix / say |
 | ------- | --------- |
 | The Vercel deploy has cold-started and takes ~8 s | *"First request wakes the serverless function. Subsequent calls are 2–5 s."* |
-| The Wikipedia URL error | *"Expected — OpenAI's image fetcher can't set a Wikimedia-approved User-Agent. Documented as `IMAGE_FETCH_FAILED`."* |
+| A Wikipedia URL fails | *"Expected — OpenAI's image fetcher can't set a Wikimedia-approved User-Agent. Documented as `IMAGE_FETCH_FAILED`."* |
 | Model returns lower confidence than expected | *"That is the point — the app is transparent about uncertainty, not confidently wrong."* |
 | An error banner | *"Coded error envelope in action — no stack trace, no mock, no hallucinated success."* |
 
 ---
 
-## 8. Closing line
+## 8. Closing
 
-> "I built this as a prototype to prove out the customer experience. The GitHub repo, the README, the SOW, and this walkthrough are all in the same repo so a customer team can follow the reasoning without needing me in the room."
+> "This is a prototype to prove out the customer experience. The GitHub repo, the README, the SOW, and this demo guide all live in the same repo so a customer team can follow the reasoning end-to-end."

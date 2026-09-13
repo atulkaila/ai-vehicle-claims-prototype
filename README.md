@@ -7,7 +7,8 @@ Preliminary AI-assisted vehicle damage assessment for insurance claims intake �
 - 🌐 **Live demo:** https://ai-vehicle-claims-prototype-p6sy.vercel.app
 - 💻 **Source:** https://github.com/atulkaila/ai-vehicle-claims-prototype
 - 📄 **Statement of Work:** [Markdown](docs/SOW.md) · [PDF](docs/SOW.pdf)
-- 🖼️ **Sample scenarios:** [docs/examples/](docs/examples/README.md)
+- 🖼️ **Sample images:** [docs/examples/](docs/examples/README.md)
+- 📖 **Demo guide:** [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md)
 
 An insurance assessor uploads a photo of a damaged vehicle (or pastes a public image URL). The app returns vehicle metadata (make / model / colour), a textual damage summary, a preliminary GBP cost range, per-section confidence indicators, and a human-review flag — all on the same page.
 
@@ -36,7 +37,7 @@ Results are **decision support**, not automated claim approval.
 
 Open the [live demo](https://ai-vehicle-claims-prototype-p6sy.vercel.app), then:
 
-1. Click **Choose File** and select any damaged-car photo (JPEG / PNG / WebP, up to 4 MB) — or pick one from [docs/examples/](docs/examples/README.md)
+1. Click **Choose File** and select a damaged-vehicle photo (JPEG / PNG / WebP, **up to 4 MB — this is Vercel's serverless request-body cap, not an app-imposed limit**). Four ready-to-use samples live in [docs/examples/](docs/examples/README.md).
 2. Click **Analyse damage**
 3. Results appear on the same page in ~3–8 seconds
 
@@ -215,7 +216,7 @@ This is a working prototype. Known limitations:
 - **No rate limiting** on the free Vercel Hobby tier. Public exposure combined with the OpenAI budget cap on the account is the only cost protection.
 - **Anti-fraud is prompt-based only** — no dedicated content moderation or forensic image analysis.
 - **No persistence** — you can't view past assessments.
-- **4 MB upload cap** to stay under Vercel's request-body limit. Larger images should be resized client-side before upload.
+- **4 MB upload cap.** This is **Vercel's serverless function request-body limit** on the Hobby tier — not an app-imposed rule. Larger images should be resized client-side before upload. Bumping the cap would mean moving off Vercel Hobby, or streaming the image via a signed-URL upload path.
 - **Wikipedia thumbnail URLs fail** because OpenAI's image fetcher can't set a Wikimedia-approved User-Agent. The app degrades gracefully to `IMAGE_FETCH_FAILED`.
 
 ---
