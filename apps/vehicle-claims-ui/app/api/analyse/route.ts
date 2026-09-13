@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { randomUUID } from "node:crypto";
 import { assessmentSchema } from "@/lib/assessmentSchema";
 
 export const runtime = "nodejs";
@@ -7,6 +8,38 @@ export const maxDuration = 60;
 
 const ACCEPTED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_BYTES = 4 * 1024 * 1024;
+
+// gpt-4o-mini list price (USD per 1K tokens) at time of writing.
+// Used only for a rough cost hint in server logs; not customer-facing.
+const PRICE_PROMPT_PER_1K_USD = 0.00015;
+const PRICE_COMPLETION_PER_1K_USD = 0.0006;
+
+type LogFields = {
+  event: string;
+  level?: "info" | "warn" | "error";
+  code?: string;
+  status?: number;
+  totalMs?: number;
+  modelMs?: number;
+  model?: string;
+  inputSource?: "upload" | "url";
+  imageBytes?: number;
+  urlHost?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  estCostUsd?: number;
+};
+
+// Emit a single-line JSON log entry. Never log secrets, image bytes, or full URLs.
+function log(requestId: string, fields: LogFields) {
+  const payload = {
+    ts: new Date().toISOString(),
+    requestId,
+    level: fields.level ?? "info",
+    ...fields,
+  };
+  console.log(JSON.stringify(payload));
+}
 
 const SYSTEM_PROMPT = `You are a professional vehicle damage assessor for a UK insurance company. Analyse the provided vehicle photograph and return a JSON object matching this exact schema:
 
@@ -41,6 +74,18 @@ function errorResponse(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
 }
 
+// Emit a rejection log then return the error response. Keeps error paths one-liners.
+function reject(requestId: string, code: string, message: string, status: number, startedAt: number) {
+  log(requestId, {
+    event: "analyse.rejected",
+    level: "warn",
+    code,
+    status,
+    totalMs: Date.now() - startedAt,
+  });
+  return errorResponse(code, message, status);
+}
+
 function isSafePublicUrl(raw: string): boolean {
   let parsed: URL;
   try {
@@ -66,54 +111,81 @@ function isSafePublicUrl(raw: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const requestId = randomUUID();
+  const startedAt = Date.now();
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return errorResponse("INTERNAL_ERROR", "Analysis service is not configured.", 500);
+    return reject(requestId, "INTERNAL_ERROR", "Analysis service is not configured.", 500, startedAt);
   }
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
   const contentType = request.headers.get("content-type") ?? "";
 
   let imagePayload: string;
+  let inputSource: "upload" | "url";
+  let imageBytes: number | undefined;
+  let urlHost: string | undefined;
 
   try {
     if (contentType.includes("multipart/form-data")) {
       const form = await request.formData();
       const image = form.get("image");
       if (!(image instanceof File)) {
-        return errorResponse("INVALID_INPUT", "Provide an image file in the 'image' field.", 400);
+        return reject(requestId, "INVALID_INPUT", "Provide an image file in the 'image' field.", 400, startedAt);
       }
       if (!ACCEPTED_TYPES.has(image.type)) {
-        return errorResponse("INVALID_IMAGE", "Only JPEG, PNG, or WebP images are supported.", 400);
+        return reject(requestId, "INVALID_IMAGE", "Only JPEG, PNG, or WebP images are supported.", 400, startedAt);
       }
       if (image.size > MAX_BYTES) {
-        return errorResponse("IMAGE_TOO_LARGE", "Image exceeds the 4 MB limit.", 413);
+        return reject(requestId, "IMAGE_TOO_LARGE", "Image exceeds the 4 MB limit.", 413, startedAt);
       }
       const bytes = Buffer.from(await image.arrayBuffer());
       imagePayload = `data:${image.type};base64,${bytes.toString("base64")}`;
+      inputSource = "upload";
+      imageBytes = image.size;
     } else if (contentType.includes("application/json")) {
       const body = (await request.json()) as { imageUrl?: unknown };
       const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
       if (!imageUrl) {
-        return errorResponse("INVALID_INPUT", "Provide an 'imageUrl' string in the JSON body.", 400);
+        return reject(requestId, "INVALID_INPUT", "Provide an 'imageUrl' string in the JSON body.", 400, startedAt);
       }
       if (!isSafePublicUrl(imageUrl)) {
-        return errorResponse("INVALID_URL", "The image URL must be a public http or https URL.", 400);
+        return reject(requestId, "INVALID_URL", "The image URL must be a public http or https URL.", 400, startedAt);
       }
       imagePayload = imageUrl;
+      inputSource = "url";
+      // Log the host only — never the full URL or query string.
+      try {
+        urlHost = new URL(imageUrl).hostname;
+      } catch {
+        urlHost = undefined;
+      }
     } else {
-      return errorResponse(
+      return reject(
+        requestId,
         "INVALID_INPUT",
         "Send multipart/form-data with an 'image' file, or JSON with an 'imageUrl'.",
         400,
+        startedAt,
       );
     }
   } catch {
-    return errorResponse("INVALID_INPUT", "Could not read the request body.", 400);
+    return reject(requestId, "INVALID_INPUT", "Could not read the request body.", 400, startedAt);
   }
+
+  log(requestId, {
+    event: "analyse.request_received",
+    model,
+    inputSource,
+    imageBytes,
+    urlHost,
+  });
 
   const client = new OpenAI({ apiKey, timeout: 45_000 });
 
   let raw: string;
+  let promptTokens: number | undefined;
+  let completionTokens: number | undefined;
+  const modelStartedAt = Date.now();
   try {
     const completion = await client.chat.completions.create({
       model,
@@ -134,22 +206,63 @@ export async function POST(request: NextRequest) {
       ],
     });
     raw = completion.choices[0]?.message?.content ?? "";
+    promptTokens = completion.usage?.prompt_tokens;
+    completionTokens = completion.usage?.completion_tokens;
   } catch (err) {
     const status = (err as { status?: number })?.status;
+    const modelMs = Date.now() - modelStartedAt;
     if (status === 400) {
+      log(requestId, {
+        event: "analyse.model_error",
+        level: "warn",
+        code: "IMAGE_FETCH_FAILED",
+        status: 400,
+        modelMs,
+        totalMs: Date.now() - startedAt,
+      });
       return errorResponse(
         "IMAGE_FETCH_FAILED",
         "The image could not be read by the model. Check the file or URL and try again.",
         400,
       );
     }
+    log(requestId, {
+      event: "analyse.model_error",
+      level: "error",
+      code: "MODEL_ERROR",
+      status: status ?? 502,
+      modelMs,
+      totalMs: Date.now() - startedAt,
+    });
     return errorResponse("MODEL_ERROR", "The analysis service is temporarily unavailable.", 502);
   }
+
+  const modelMs = Date.now() - modelStartedAt;
+  const estCostUsd =
+    promptTokens !== undefined && completionTokens !== undefined
+      ? Number(
+          (
+            (promptTokens * PRICE_PROMPT_PER_1K_USD + completionTokens * PRICE_COMPLETION_PER_1K_USD) /
+            1000
+          ).toFixed(6),
+        )
+      : undefined;
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
+    log(requestId, {
+      event: "analyse.parse_failed",
+      level: "error",
+      code: "INVALID_MODEL_RESPONSE",
+      status: 502,
+      modelMs,
+      promptTokens,
+      completionTokens,
+      estCostUsd,
+      totalMs: Date.now() - startedAt,
+    });
     return errorResponse(
       "INVALID_MODEL_RESPONSE",
       "The AI response could not be parsed. Please retry.",
@@ -159,12 +272,33 @@ export async function POST(request: NextRequest) {
 
   const result = assessmentSchema.safeParse(parsed);
   if (!result.success) {
+    log(requestId, {
+      event: "analyse.schema_failed",
+      level: "error",
+      code: "INVALID_MODEL_RESPONSE",
+      status: 502,
+      modelMs,
+      promptTokens,
+      completionTokens,
+      estCostUsd,
+      totalMs: Date.now() - startedAt,
+    });
     return errorResponse(
       "INVALID_MODEL_RESPONSE",
       "The AI response did not match the expected schema.",
       502,
     );
   }
+
+  log(requestId, {
+    event: "analyse.completed",
+    model,
+    modelMs,
+    promptTokens,
+    completionTokens,
+    estCostUsd,
+    totalMs: Date.now() - startedAt,
+  });
 
   return NextResponse.json(result.data);
 }

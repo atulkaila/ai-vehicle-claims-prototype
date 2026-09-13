@@ -1,10 +1,13 @@
 # AI Vehicle Claims Prototype
 
+[![build](https://github.com/atulkaila/ai-vehicle-claims-prototype/actions/workflows/build.yml/badge.svg)](https://github.com/atulkaila/ai-vehicle-claims-prototype/actions/workflows/build.yml)
+
 Preliminary AI-assisted vehicle damage assessment for insurance claims intake — a customer-ready full-stack prototype.
 
 - 🌐 **Live demo:** https://ai-vehicle-claims-prototype-p6sy.vercel.app
 - 💻 **Source:** https://github.com/atulkaila/ai-vehicle-claims-prototype
 - 📄 **Statement of Work:** [Markdown](docs/SOW.md) · [PDF](docs/SOW.pdf)
+- 🖼️ **Sample scenarios:** [docs/examples/](docs/examples/README.md)
 
 An insurance assessor uploads a photo of a damaged vehicle (or pastes a public image URL). The app returns vehicle metadata (make / model / colour), a textual damage summary, a preliminary GBP cost range, per-section confidence indicators, and a human-review flag — all on the same page.
 
@@ -33,7 +36,7 @@ Results are **decision support**, not automated claim approval.
 
 Open the [live demo](https://ai-vehicle-claims-prototype-p6sy.vercel.app), then:
 
-1. Click **Choose File** and select any damaged-car photo (JPEG / PNG / WebP, up to 4 MB)
+1. Click **Choose File** and select any damaged-car photo (JPEG / PNG / WebP, up to 4 MB) — or pick one from [docs/examples/](docs/examples/README.md)
 2. Click **Analyse damage**
 3. Results appear on the same page in ~3–8 seconds
 
@@ -241,7 +244,7 @@ If given more time, I would prioritise (in order):
 | Frontend framework | **Next.js 15** (App Router) + **React 19** + **TypeScript 5.9** |
 | Styling | **Tailwind CSS v4** |
 | Backend | **Next.js Route Handlers** (Node.js runtime, Vercel serverless) |
-| AI | **OpenAI Chat Completions** (`gpt-4o-mini`) via `openai@^4` SDK |
+| AI | **OpenAI Chat Completions** (`gpt-4o-mini`) via `openai@^7` SDK |
 | Runtime validation | **Zod** — response schema, type inference |
 | Hosting | **Vercel** (Hobby tier), GitHub-integrated auto-deploys |
 | Source control | **Git + GitHub** |
